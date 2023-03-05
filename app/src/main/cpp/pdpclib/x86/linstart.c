@@ -27,7 +27,6 @@ extern int __mprotect(void *buf, size_t len, int prot);
 int _start(char *p)
 {
     int rc;
-    char *argv[2] = { "prog", NULL };
 
 #ifdef NEED_MPROTECT
     /* make malloced memory executable */
@@ -62,8 +61,7 @@ int _start(char *p)
 #endif
 
 #else
-    /* rc = __start(*(int *)(&p - 1), &p); */
-    rc = __start(1, argv);
+    rc = __start(*(int *)(&p - 1), &p);
 #endif
     __exita(rc);
     return (rc);

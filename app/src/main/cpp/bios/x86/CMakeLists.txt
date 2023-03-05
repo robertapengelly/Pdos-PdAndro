@@ -12,7 +12,7 @@ add_executable(
 )
 
 target_compile_options(libbios.so PRIVATE
-    $<$<COMPILE_LANGUAGE:C>:-ffreestanding -fno-builtin -fno-stack-protector -nostdinc -nostdlib -D__gnu_linux__ -O2 -DNEED_AOUT -DNEED_MPROTECT -I${CMAKE_SOURCE_DIR}/pdpclib/${ANDROID_ABI} -I${CMAKE_CURRENT_SOURCE_DIR}>
+    $<$<COMPILE_LANGUAGE:C>:-ffreestanding -fno-builtin -fno-stack-protector -nostdinc -nostdlib -D__gnu_linux__ -O0 -DNEED_AOUT -DNEED_MPROTECT -I${CMAKE_SOURCE_DIR}/pdpclib/${ANDROID_ABI} -I${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
 target_link_options(libbios.so PRIVATE "-Wl,-nostdlib")

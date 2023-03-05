@@ -24,7 +24,7 @@ add_library(
 )
 
 target_compile_options(pdpclib PRIVATE
-    $<$<COMPILE_LANGUAGE:C>:-ffreestanding -fno-builtin -fno-stack-protector -nostdinc -nostdlib -D__gnu_linux__ -O2 -fno-builtin -DUSE_MEMMGR -I${CMAKE_CURRENT_SOURCE_DIR}>
+    $<$<COMPILE_LANGUAGE:C>:-ffreestanding -fno-builtin -fno-stack-protector -nostdinc -nostdlib -D__gnu_linux__ -O0 -fno-builtin -DUSE_MEMMGR -I${CMAKE_CURRENT_SOURCE_DIR}>
     $<$<COMPILE_LANGUAGE:ASM>:-x assembler-with-cpp>
 )
 

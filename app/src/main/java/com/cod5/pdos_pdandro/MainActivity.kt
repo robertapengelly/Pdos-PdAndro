@@ -743,8 +743,24 @@ class MainActivity : AppCompatActivity(), OnClickListener {
 
         try {
             val file = File(dir, "pdos.exe")
+
+            if (file.exists()) {
+                val abi = Build.SUPPORTED_ABIS[0]
+                val temp1 = resources.assets.open("$abi/pdos.exe")
+                val temp2 = FileInputStream(file)
+
+                if (!isEqual(temp1, temp2)) {
+                    android.util.Log.i(javaClass.name, "Resource file has changed")
+                    file.delete();
+                }
+
+                temp1.close()
+                temp2.close()
+            }
+
             if (!file.exists()) {
-                val input = resources.openRawResource(R.raw.pdos)
+                val abi = Build.SUPPORTED_ABIS[0]
+                val input = resources.assets.open("$abi/pdos.exe")
                 val output = FileOutputStream(file)
                 val buffer = ByteArray(4096)
                 var rd = input.read(buffer)
