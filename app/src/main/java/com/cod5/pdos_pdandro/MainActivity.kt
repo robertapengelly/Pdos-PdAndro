@@ -722,7 +722,7 @@ class MainActivity : AppCompatActivity(), OnClickListener {
         }, 1000, 1000)
     }
 
-    /*private fun isEqual(is1: InputStream, is2: InputStream) : Boolean {
+    private fun isEqual(is1: InputStream, is2: InputStream) : Boolean {
         is1.use { src ->
             is2.use { dest ->
                 var ch : Int
@@ -734,7 +734,7 @@ class MainActivity : AppCompatActivity(), OnClickListener {
             }
         }
         return true;
-    }*/
+    }
 
     /* copy files and run native executable */
     fun init_app(dir: File) {

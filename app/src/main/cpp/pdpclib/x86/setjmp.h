@@ -14,7 +14,11 @@
 #define __SETJMP_INCLUDED
 
 typedef struct {
-#if defined(__MVS__) || defined(__CMS__) || defined(__VSE__)
+#if defined(__64BIT__)
+    long long retval;
+    long long retaddr;
+    long long regs[10];
+#elif defined(__MVS__) || defined(__CMS__) || defined(__VSE__)
     int regs[15];
 #elif defined(__AMIGA__)
     long a0;
@@ -71,13 +75,23 @@ typedef struct {
 #else
 #error unknown system in setjmp.h
 #endif
+#ifndef __64BIT__
     int retval;
+#endif
 } jmp_buf[1];
 
 void longjmp(jmp_buf env, int val);
 
-#ifdef __MSC__
+#if defined(__64BIT__)
+#define setjmp(x) __setj(x)
+int __setj(jmp_buf env);
+
+#elif defined(__MSC__)
 int setjmp(jmp_buf env);
+
+#elif defined(__EFI__)
+#define setjmp(x) __setj(x)
+int __setj(jmp_buf env);
 
 #elif defined(__ARM__) || defined(__ARMGEN__)
 /* it appears that gcc has _setjmp as a known keyword which

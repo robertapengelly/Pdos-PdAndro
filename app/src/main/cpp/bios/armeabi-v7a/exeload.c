@@ -151,7 +151,8 @@ static int exeloadLoadAOUT(unsigned char **entry_point,
     unsigned char *zap;
 
 
-    if (/*(fseek(fp, 0, SEEK_SET) != 0) || */(fread(&firstbit, sizeof(firstbit), 1, fp) != 1))
+    if ((fseek(fp, 0, SEEK_SET) != 0)
+        || (fread(&firstbit, sizeof(firstbit), 1, fp) != 1))
     {
         return (1);
     }
@@ -1671,6 +1672,14 @@ static int exeloadLoadPE(unsigned char **entry_point,
                             *(unsigned char **)rel_target -= image_diff;
                         else *(unsigned char **)rel_target += image_diff;
                     }
+#if TARGET_64BIT
+                    else if (rel_type == IMAGE_REL_BASED_DIR64)
+                    {
+                        if (lower_exeStart)
+                            *(unsigned char **)rel_target -= image_diff;
+                        else *(unsigned char **)rel_target += image_diff;
+                    }
+#endif
                     else
                     {
                         printf("Unknown PE relocation type: %u\n",
@@ -2107,6 +2116,7 @@ static int exeloadLoadPEDLL(unsigned char *exeStart,
         }
     }
 
+#ifndef NO_DLLENTRY
     /* Entry point is optional for DLLs. */
     if (optional_hdr->AddressOfEntryPoint)
     {
@@ -2124,6 +2134,7 @@ static int exeloadLoadPEDLL(unsigned char *exeStart,
             return (20);
         }
     }
+#endif
 
     /* Frees memory not needed by the DLL. */
     free(section_table);

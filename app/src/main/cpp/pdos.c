@@ -56,8 +56,7 @@ int run(char *cmd, char *arg1)
 }
 
 #define BIN_SIZE 32 * 1024 * 1024
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     int n = 0;
     FILE *fp = stdin;
     int fd = STDIN_FILENO;
@@ -65,34 +64,34 @@ int main(int argc, char *argv[])
     char b[1024];
     char *prompt = NULL;
 #if 0 // amd64 in RAM execution test
-/*    char assembly[] = {0x48, 0xc7, 0xc0, 0x10, 0x00, 0x00, 0x00, //          movq    $16, %rax
-                    0xc3}; //                            retq
-  */   // Arm32
-    char assembly[] = {0x11, 0x00, 0xa0, 0xe3, //   mov     r0, #17
-                        0x1e, 0xff, 0x2f, 0xe1}; //   bx lr
+    /*    char assembly[] = {0x48, 0xc7, 0xc0, 0x10, 0x00, 0x00, 0x00, //          movq    $16, %rax
+                        0xc3}; //                            retq
+      */   // Arm32
+        char assembly[] = {0x11, 0x00, 0xa0, 0xe3, //   mov     r0, #17
+                            0x1e, 0xff, 0x2f, 0xe1}; //   bx lr
 
-    char *bin;
-    int ret;
-    char *err;
-    long pagesize = sysconf(_SC_PAGESIZE);
-    long memsize = (BIN_SIZE + pagesize -1) / pagesize * pagesize;
-    bin = (long)malloc(BIN_SIZE + pagesize - 1) / pagesize * pagesize;
-    //bin = malloc(pagesize);
-    memcpy(bin, assembly, sizeof(assembly));
-    ret = mprotect(bin, memsize, PROT_EXEC|PROT_READ|PROT_WRITE);
-    if (ret != 0) {
-        err = strerror(errno);
-        write(STDOUT_FILENO, err, strlen(err));
+        char *bin;
+        int ret;
+        char *err;
+        long pagesize = sysconf(_SC_PAGESIZE);
+        long memsize = (BIN_SIZE + pagesize -1) / pagesize * pagesize;
+        bin = (long)malloc(BIN_SIZE + pagesize - 1) / pagesize * pagesize;
+        //bin = malloc(pagesize);
+        memcpy(bin, assembly, sizeof(assembly));
+        ret = mprotect(bin, memsize, PROT_EXEC|PROT_READ|PROT_WRITE);
+        if (ret != 0) {
+            err = strerror(errno);
+            write(STDOUT_FILENO, err, strlen(err));
 
-    }
-    ret = ((int(*)())bin)();
-    snprintf(cmd, 10, "R%ld", ret);
-    sleep(1);
-    write(STDOUT_FILENO, cmd, strlen(cmd));
+        }
+        ret = ((int(*)())bin)();
+        snprintf(cmd, 10, "R%ld", ret);
+        sleep(1);
+        write(STDOUT_FILENO, cmd, strlen(cmd));
 #endif
 
     sleep(1);
-
+    
     if (argc > 1) {
         write(STDOUT_FILENO, argv[1], strlen(argv[1]));
     }
@@ -109,8 +108,26 @@ int main(int argc, char *argv[])
     sleep(1);
     return 0;
 
-#if	0
-    prompt = "\nEnter \"bios\" to start PDOS.\nprompt>";
+#if     0
+    if (argc > 1) {
+        write(STDOUT_FILENO, argv[1], strlen(argv[1]));
+    }
+    if (argc > 2) {
+        write(STDOUT_FILENO, "\n", 1);
+        write(STDOUT_FILENO, argv[2], strlen(argv[2]));
+    }
+    write(STDOUT_FILENO, "\n", 1);
+    //sleep(2);
+
+    snprintf(b, sizeof(b), argv[1], "bios");
+    snprintf(cmd, sizeof(cmd), "%s", b);
+    if (system(cmd) >= 0) {
+        sleep(3);
+       // return 0;
+    }
+
+
+    prompt = "\n*** DEBUG SHELL ****.\nprompt>";
     write(STDOUT_FILENO, prompt, strlen(prompt));
     prompt = NULL;
     old_mode = fcntl(STDIN_FILENO, F_GETFL);
@@ -136,11 +153,11 @@ int main(int argc, char *argv[])
                         } else if (!strcmp(cmd, "test1")) {
                             prompt = "\x1b[A\r\x1b[K\x1b[1;32mopened \x1b[1;4;34m%s\x1b[0;1;32m in your browser.\x1b[0m\n\x1b[1;1H";
                             write(STDOUT_FILENO, prompt, strlen(prompt));
-                        } else if (!strcmp(cmd, "LS")) {
-                            snprintf(cmd, sizeof(cmd), argv[1], "ls");
-                            run(cmd, NULL/*argv[2]*/);
-                        } else if (!strcmp(cmd, "bios")) {
+                        } else if (!strcmp(cmd, "bios.exe")) {
                             snprintf(cmd, sizeof(cmd), argv[1], "bios");
+                            run(cmd, NULL);
+                        } else if (!strcmp(cmd, "pcomm.exe")) {
+                            snprintf(cmd, sizeof(cmd), argv[1], "pcomm");
                             run(cmd, NULL);
                         } else {
                             system(cmd);

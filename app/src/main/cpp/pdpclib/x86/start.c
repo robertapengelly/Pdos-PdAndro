@@ -258,6 +258,7 @@ void *DOSBase;
 
 #if defined(__EFI__)
 #include "efi.h"
+extern EFI_FILE_PROTOCOL *__EfiRoot;
 #endif
 
 #if defined(__PDOS386__)
@@ -366,12 +367,10 @@ int __start(char *plist, char *pgmname, char **eplist)
 int __start(char *p, char *pgmname, char *ep)
 #elif defined(__MVS__)
 int __start(char *p, char *pgmname, int tso)
-#elif defined(__gnu_linux__)
+#elif defined(__gnu_linux__) || defined(__EFI__)
 int __start(int argc, char **argv)
 #elif defined(__AMIGA__)
 int __start(unsigned long cmdlen, char *p, void *pdosbase)
-#elif defined(__EFI__)
-int __start(void)
 #elif defined(__SMALLERC__)
 __PDPCLIB_API__ int CTYP __start(char *p, unsigned short osver)
 #else
@@ -381,13 +380,10 @@ __PDPCLIB_API__ int CTYP __start(char *p)
 #ifdef __CMS__
     char *p;
 #endif
-#ifdef __EFI__
-    char *p = "";
-#endif
     int x;
     int oldglobrc = globrc;
     jmp_buf oldjb;
-#if !defined(__gnu_linux__)
+#if !defined(__gnu_linux__) && !defined(__EFI__)
     int argc;
     static char *argv[MAXPARMS + 1];
 #endif
@@ -484,7 +480,7 @@ __PDPCLIB_API__ int CTYP __start(char *p)
     __stdin->hfile = Input();
     __stdout->hfile = Output();
     __stderr->hfile = Output();
-#else
+#elif !defined(__EFI__) /* EFI will leave everything as NULL */
     __stdin->hfile = 0;
     __stdout->hfile = 1;
     __stderr->hfile = 2;
@@ -1159,7 +1155,7 @@ __PDPCLIB_API__ int CTYP __start(char *p)
         }
     }
 #endif
-#if !defined(__gnu_linux__)
+#if !defined(__gnu_linux__) && !defined(__EFI__)
     while (*p == ' ')
     {
         p++;
@@ -1255,7 +1251,9 @@ __PDPCLIB_API__ int CTYP __start(char *p)
 #endif
     if (runnum == 1)
     {
+#if !defined(__64BIT__)
     __exit(rc);
+#endif
     }
     runnum--;
     return (rc);
@@ -1285,6 +1283,10 @@ void __exit(int status)
        so that we don't get called again */
     runnum--;
     /* and we can't go through another longjmp either */
+    /* really? 64 bit needs a longjmp. */
+#ifdef __64BIT__
+    longjmp(jb, status);
+#endif
     return;
     }
     globrc = status;
@@ -1348,6 +1350,14 @@ __PDPCLIB_API__ void _c_exit(void)
 #if defined(__WIN32__)
     SetConsoleMode(__stdin->hfile, stdin_dw);
     SetConsoleMode(__stdout->hfile, stdout_dw);
+#endif
+
+#if defined(__EFI__)
+    if (__EfiRoot != NULL)
+    {
+        __EfiRoot->Close(__EfiRoot);
+        __EfiRoot = NULL;
+    }
 #endif
 
 #if defined(__PDOS386__)

@@ -36,7 +36,7 @@ extern int (*__genmain)(int argc, char **argv);
 
 #define MEMAMT 24*1000*1000
 
-#if defined(__gnu_linux__) || defined(__ARM__)
+#if defined(__gnu_linux__) || defined(__ARM__) || defined(__EFI__)
 extern int __start(int argc, char **argv);
 #else
 extern int __start(char *p);
@@ -242,13 +242,14 @@ int main(int argc, char **argv)
     /* printf("first byte of code is %02X\n", *(unsigned char *)entry_point); */
 
 #ifdef NEED_DELAY
-    for (rc = 0; rc < 3; rc++)
+    for (rc = 0; rc < 500; rc++)
     {
         printf("please accept a delay before we execute program "
                "in BSS memory\n");
     }
 #endif
 
+    printf("about to execute program\n");
 #if 1
     rc = genstart(&bios);
 #else
@@ -301,14 +302,18 @@ int main(int argc, char **argv)
 
 int their_start(char *parm)
 {
-#if defined(__gnu_linux__) || defined(__ARM__)
+    int rc;
+
+#if defined(__gnu_linux__) || defined(__ARM__) || defined(__EFI__)
     int argc;
     char **argv;
+
     getmainargs(&argc, &argv);
-    __start(argc, argv);
+    rc = __start(argc, argv);
 #else
-    __start(parm);
+    rc = __start(parm);
 #endif
+    return (rc);
 }
 
 

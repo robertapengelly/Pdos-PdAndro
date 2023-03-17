@@ -118,6 +118,10 @@ extern void CTYP __rename(const char *old, const char *newnam);
 
 #ifdef __EFI__
 #include "efi.h"
+EFI_FILE_PROTOCOL *__EfiRoot = NULL;
+#ifdef __EFIBIOS__
+static EFI_BLOCK_IO_PROTOCOL *bio_protocol = NULL;
+#endif
 #endif
 
 #ifdef __OS2__
@@ -258,11 +262,11 @@ static const char *fnm;
 static const char *modus;
 static int modeType;
 
-__PDPCLIB_API__ FILE **__gtin()
+__PDPCLIB_API__ FILE **__gtin(void)
     { return(&__stdin_ptr); }
-__PDPCLIB_API__ FILE **__gtout()
+__PDPCLIB_API__ FILE **__gtout(void)
     { return(&__stdout_ptr); }
-__PDPCLIB_API__ FILE **__gterr()
+__PDPCLIB_API__ FILE **__gterr(void)
     { return(&__stderr_ptr); }
 
 #if defined(__WIN32__) && !defined(__STATIC__)
@@ -754,6 +758,93 @@ static void osfopen(void)
         errno = 1;
     }
 #endif
+
+
+#ifdef __EFI__
+
+#define return_Status_if_fail(func) do { if ((Status = (func))) { err = 1; \
+        errno = Status; return; }} while (0)
+
+    int mode;
+    EFI_STATUS Status = EFI_SUCCESS;
+    static EFI_GUID li_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+    EFI_LOADED_IMAGE_PROTOCOL *li_protocol;
+    static EFI_GUID sfs_protocol_guid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *sfs_protocol;
+    UINT64 OpenModeRead = {0x3, 0}; /* Read+Write */
+    UINT64 OpenModeWrite = {0x3, 0x80000000}; /* Read+Write+Create */
+    EFI_FILE_PROTOCOL *new_file;
+    static UINT64 Attributes = {0, 0};
+    CHAR16 file_name[FILENAME_MAX];
+    int x;
+    static EFI_GUID block_io_guid = EFI_BLOCK_IO_PROTOCOL_GUID;
+
+    if (__EfiRoot == NULL)
+    {
+        return_Status_if_fail (__gBS->HandleProtocol (__gIH, &li_guid, (void **)&li_protocol));
+        return_Status_if_fail (__gBS->HandleProtocol (li_protocol->DeviceHandle, &sfs_protocol_guid, (void **)&sfs_protocol));
+        return_Status_if_fail (sfs_protocol->OpenVolume (sfs_protocol, &__EfiRoot));
+#ifdef __EFIBIOS__
+        return_Status_if_fail (__gBS->HandleProtocol (li_protocol->DeviceHandle, &block_io_guid, (void **)&bio_protocol));
+#endif
+    }
+
+    if ((modeType == 1) || (modeType == 4)
+        || (modeType == 7) || (modeType == 10))
+    {
+        mode = 0; /* read */
+    }
+    else if ((modeType == 2) || (modeType == 5)
+             || (modeType == 8) || (modeType == 11))
+    {
+        mode = 1; /* write */
+    }
+    else
+    {
+        mode = 2; /* append or otherwise unsupported */
+        /* because we don't have append mode implemented
+           at the moment, just return with an
+           error immediately */
+        err = 1;
+        errno = 2;
+        return;
+    }
+
+#ifdef __EFIBIOS__
+    myfile->block = 0;
+    if (strcmp(fnm, "!BOOT") == 0)
+    {
+        myfile->block = 1;
+        myfile->sector = 0;
+    }
+    else
+#endif
+    {
+    x = 0;
+    do {
+        file_name[x] = (CHAR16)fnm[x];
+    } while (fnm[x++] != 0);
+
+    if (mode)
+    {
+        return_Status_if_fail (__EfiRoot->Open (__EfiRoot, &new_file, file_name, OpenModeWrite, Attributes));
+    }
+    else
+    {
+        return_Status_if_fail (__EfiRoot->Open (__EfiRoot, &new_file, file_name, OpenModeRead, Attributes));
+    }
+    if (new_file == NULL)
+    {
+        err = 1;
+        errno = 1;
+    }
+    myfile->hfile = new_file;
+
+    }
+
+#endif
+
+
 #ifdef __OS2__
     APIRET rc;
     ULONG  action;
@@ -1573,6 +1664,12 @@ __PDPCLIB_API__ int fclose(FILE *stream)
 #ifdef __AMIGA__
     Close(stream->hfile);
 #endif
+#ifdef __EFI__
+    if (stream->hfile != NULL)
+    {
+        ((EFI_FILE_PROTOCOL *)(stream->hfile))->Close(stream->hfile);
+    }
+#endif
 #ifdef __OS2__
     rc = DosClose(stream->hfile);
 #endif
@@ -1688,6 +1785,13 @@ static void iread(FILE *stream, void *ptr, size_t toread, size_t *actualRead)
 #ifdef __AMIGA__
     long tempRead;
 #endif
+#ifdef __EFI__
+    UINTN tempRead;
+    EFI_STATUS Status;
+#ifdef __EFIBIOS__
+    static EFI_LBA LBA = {1, 0};
+#endif
+#endif
 #ifdef __OS2__
     APIRET rc;
     ULONG tempRead;
@@ -1713,6 +1817,102 @@ static void iread(FILE *stream, void *ptr, size_t toread, size_t *actualRead)
         *actualRead = tempRead;
     }
 #endif
+#ifdef __EFI__
+#ifdef __EFIBIOS__
+    tempRead = toread;
+    if (stream->block)
+    {
+        if (tempRead < bio_protocol->Media->BlockSize)
+        {
+            printf("sector size mismatch - freezing\n");
+            printf("attempting to read %d\n", tempRead);
+            printf("but sector is %d\n", (int)bio_protocol->Media->BlockSize);
+            for (;;) ;
+        }
+        LBA.a = stream->sector;
+        Status = bio_protocol->ReadBlocks (bio_protocol,
+                                           bio_protocol->Media->MediaId,
+                                           LBA,
+                                           bio_protocol->Media->BlockSize,
+                                           ptr);
+        if (Status != EFI_SUCCESS)
+        {
+            *actualRead = 0;
+            stream->errorInd = 1;
+        }
+        else
+        {
+            *actualRead = tempRead;
+        }
+    }
+    else
+#endif
+    {
+    if (stream->hfile == NULL)
+    {
+        UINTN Index;
+        EFI_INPUT_KEY input;
+        char c;
+
+        for (tempRead = 0; tempRead < toread; tempRead++)
+        {
+            if ((__gST->BootServices->WaitForEvent (1, &__gST->ConIn->WaitForKey, &Index) != EFI_SUCCESS)
+                || (__gST->ConIn->ReadKeyStroke (__gST->ConIn, &input) != EFI_SUCCESS))
+            {
+                *actualRead = 0;
+                stream->errorInd = 1;
+                break;
+            }
+            c = input.UnicodeChar;
+            if (c == '\r')
+            {
+                c = '\n';
+            }
+            if ((c != '\b') || (tempRead > 0))
+            {
+                printf("%c", c);
+                fflush(stdout);
+            }
+            *(((char *)ptr) + tempRead) = c;
+            if (c == '\n')
+            {
+                tempRead++;
+                break;
+            }
+            if (c == '\b')
+            {
+                if (tempRead > 0)
+                {
+                    /* delete the backspace, unless we only have a backspace */
+                    tempRead--;
+                }
+                tempRead--; /* account for the previous character
+                               - may go negative */
+            }
+        }
+        if (!stream->errorInd)
+        {
+            *actualRead = tempRead;
+        }
+    }
+    else
+    {
+    Status = ((EFI_FILE_PROTOCOL *)(stream->hfile))->Read(stream->hfile, &tempRead, ptr);
+    if (Status != EFI_SUCCESS)
+    {
+        *actualRead = 0;
+        stream->errorInd = 1;
+    }
+    else
+    {
+        *actualRead = tempRead;
+    }
+    }
+    }
+
+#endif
+
+
 #ifdef __OS2__
     rc = DosRead(stream->hfile, ptr, toread, &tempRead);
     if (rc != 0)
@@ -2095,6 +2295,7 @@ static void iwrite(FILE *stream,
 #ifdef __EFI__
     size_t tempWritten;
     static CHAR16 onechar[2] = {0, '\0'};
+    EFI_STATUS Status;
 #endif
 
 #ifdef __AMIGA__
@@ -2137,16 +2338,33 @@ static void iwrite(FILE *stream,
     }
 #endif
 #ifdef __EFI__
-    for (tempWritten = 0; tempWritten < towrite; tempWritten++)
+    if (stream->hfile == NULL)
     {
-        onechar[0] = *((unsigned char *)ptr + tempWritten);
-        if (onechar[0] == '\n')
+        for (tempWritten = 0; tempWritten < towrite; tempWritten++)
         {
-            onechar[0] = '\r';
+            onechar[0] = *((unsigned char *)ptr + tempWritten);
+            if (onechar[0] == '\n')
+            {
+                onechar[0] = '\r';
+                __gST->ConOut->OutputString(__gST->ConOut, onechar);
+                onechar[0] = '\n';
+            }
             __gST->ConOut->OutputString(__gST->ConOut, onechar);
-            onechar[0] = '\n';
         }
-        __gST->ConOut->OutputString(__gST->ConOut, onechar);
+    }
+    else
+    {
+        tempWritten = towrite;
+        Status = ((EFI_FILE_PROTOCOL *)(stream->hfile))->Write(stream->hfile, &tempWritten, ptr);
+        if (Status != EFI_SUCCESS)
+        {
+            *actualWritten = 0;
+            stream->errorInd = 1;
+        }
+        else
+        {
+            *actualWritten = tempWritten;
+        }
     }
 #endif
     *actualWritten = tempWritten;
@@ -3533,6 +3751,10 @@ __PDPCLIB_API__ int fseek(FILE *stream, long int offset, int whence)
 #ifdef __AMIGA__
     long retpos;
 #endif
+#ifdef __EFI__
+    UINT64 Position;
+    EFI_STATUS Status;
+#endif
 #ifdef __OS2__
     ULONG retpos;
     APIRET rc;
@@ -3610,6 +3832,38 @@ __PDPCLIB_API__ int fseek(FILE *stream, long int offset, int whence)
             stream->bufStartR = newpos;
         }
 #endif
+#ifdef __EFI__
+#ifdef __EFIBIOS__
+        if (stream->block)
+        {
+            stream->sector = newpos / 512;
+        }
+        else
+        {
+#endif
+        Position.a = newpos;
+        Status = ((EFI_FILE_PROTOCOL *)(stream->hfile))->SetPosition(stream->hfile, Position);
+        if (Status != EFI_SUCCESS)
+        {
+            return (-1);
+        }
+#ifdef __EFIBIOS__
+        }
+#endif
+        stream->endbuf = stream->fbuf + stream->szfbuf;
+        if (stream->mode == __READ_MODE)
+        {
+            stream->upto = stream->endbuf;
+            stream->bufStartR = newpos - stream->szfbuf;
+        }
+        else
+        {
+            stream->upto = stream->fbuf;
+            stream->bufStartR = newpos;
+        }
+#endif
+
+
 #ifdef __OS2__
         rc = DosSetFilePtr(stream->hfile, newpos, FILE_BEGIN, &retpos);
         if ((rc != 0) || (retpos != newpos))

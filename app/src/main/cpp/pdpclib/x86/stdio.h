@@ -18,7 +18,9 @@
 
 #ifndef __SIZE_T_DEFINED
 #define __SIZE_T_DEFINED
-#if (defined(__OS2__) || defined(__32BIT__) || defined(__MVS__) \
+#if defined(__64BIT__)
+typedef unsigned long long size_t;
+#elif (defined(__OS2__) || defined(__32BIT__) || defined(__MVS__) \
     || defined(__CMS__) || defined(__VSE__) || defined(__SMALLERC__) \
     || defined(__ARM__) || defined(__gnu_linux__) || defined(__PDOS386__) \
     || defined(__SZ4__))
@@ -63,10 +65,14 @@ typedef struct
 #elif (defined(__MSDOS__) || defined(__DOS__) || defined(__POWERC) \
     || defined(__SMALLERC__))
     int hfile; /* dos file handle */
-#elif defined(__WIN32__) || defined(__AMIGA__)
+#elif defined(__WIN32__) || defined(__AMIGA__) || defined(__EFI__)
     void *hfile;
-#elif defined(__gnu_linux__) || defined(__ARM__) || defined(__EFI__)
+#elif defined(__gnu_linux__) || defined(__ARM__)
     int hfile;
+#endif
+#if defined(__EFIBIOS__)
+    int block;
+    unsigned long sector;
 #endif
 #if (defined(__MVS__) || defined(__CMS__) || defined(__VSE__))
     void *hfile;
