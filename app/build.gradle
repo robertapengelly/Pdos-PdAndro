@@ -5,15 +5,15 @@ plugins {
 
 android {
     namespace 'com.cod5.pdos_pdandro'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.cod5.pdos_pdandro"
         minSdk 21
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
-        ndk.abiFilters 'armeabi-v7a', 'x86'
+        ndk.abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -33,6 +33,10 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    buildFeatures {
+        viewBinding true
+    }
+
     externalNativeBuild {
         cmake {
             path file('src/main/cpp/CMakeLists.txt')
@@ -43,13 +47,19 @@ android {
         viewBinding true
     }
     ndkVersion '23.1.7779620'
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ["src/main/jniLibs", "$buildDir/native-libs"]
+        }
+    }
 }
 
 dependencies {
 
-    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.core:core-ktx:1.13.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.8.0'
+    implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
