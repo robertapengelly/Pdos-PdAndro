@@ -7,11 +7,13 @@
     <!-- Without this folders will be inaccessible in Android-11 and above devices -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
-    <!-- Without this entry storage-permission entry will not be visible under app-info permissions list Android-10 and below -->
+
+    <!-- tools:ignore="ScopedStorage" Without this entry storage-permission entry will not be visible under app-info permissions list Android-10 and below -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28"
-        tools:ignore="ScopedStorage"/>
+        android:maxSdkVersion="29"
+        />
+
 
     <application
         android:allowBackup="true"
@@ -23,7 +25,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PdosPdAndro"
         android:requestLegacyExternalStorage="true"
-        tools:targetApi="31">
+        tools:targetApi="34">
 
         <activity
             android:name=".MainActivity"
