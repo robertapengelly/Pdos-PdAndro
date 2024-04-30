@@ -18,6 +18,7 @@ import android.os.Handler
 import android.provider.Settings
 import android.system.Os
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.View.OnClickListener
@@ -34,6 +35,7 @@ import java.io.InputStream
 import java.io.OutputStreamWriter
 import java.util.*
 import kotlin.math.ceil
+import kotlin.math.log
 import kotlin.system.exitProcess
 
 
@@ -211,7 +213,7 @@ class MainActivity : AppCompatActivity(), OnClickListener {
                 s = c.toChar().toString()
             }
         }
-        if (s.length > 0) {
+        if (s.isNotEmpty()) {
                 val sb = StringBuilder()
                 sb.append(input_buf).append(s)
                 input_buf = sb.toString()
@@ -254,6 +256,20 @@ class MainActivity : AppCompatActivity(), OnClickListener {
                 onKeyDown(keyEvent.keyCode, keyEvent)
             }
             return@setOnKeyListener true
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onResume() {
+        super.onResume()
+
+        if (!hasWriteStoragePermission()) {
+            return
+        }
+
+        if (!hasAllFilesPermission()) {
+            askAllFilesPermission()
+            return
         }
 
         run()
@@ -365,8 +381,6 @@ class MainActivity : AppCompatActivity(), OnClickListener {
 
     /* try to run exec */
     fun run() {
-        hasWriteStoragePermission()
-        askAllFilesPermission();
         val tim = Timer()
         tim.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
@@ -422,7 +436,7 @@ class MainActivity : AppCompatActivity(), OnClickListener {
     fun String.runCommand(workingDir: File): String {
         try {
             val own = applicationContext.applicationInfo.nativeLibraryDir
-
+            Log.i(javaClass.name, own)
             proc = Runtime.getRuntime().exec(
                 arrayOf<String> (this, "$own/lib%s.so", workingDir.absolutePath),
                 Os.environ(), workingDir)

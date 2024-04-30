@@ -5,18 +5,15 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <!-- Without this folders will be inaccessible in Android-11 and above devices -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
 
     <!-- tools:ignore="ScopedStorage" Without this entry storage-permission entry will not be visible under app-info permissions list Android-10 and below -->
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29"
-        />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
 
 
     <application
         android:allowBackup="true"
+        android:extractNativeLibs="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -31,20 +28,14 @@
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="landscape"
-
             android:windowSoftInputMode="stateAlwaysHidden"
-            >
+            tools:ignore="DiscouragedApi">
             <!--android:windowSoftInputMode="stateVisible|adjustResize" -->
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
         </activity>
     </application>
 
