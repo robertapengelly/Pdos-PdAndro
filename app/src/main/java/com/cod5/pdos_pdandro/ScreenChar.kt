@@ -1,26 +1,35 @@
 package com.cod5.pdos_pdandro
 
-import android.graphics.Color
+import  android.graphics.Color
 
-  /* a single character in our ANSI console */
-class ScreenChar(str: String) {
-    var txt = str
-    var decoration = ""
-    var color = Color.WHITE
-    var bgcolor = Color.BLACK
+class ScreenChar (str: String) {
+
     var typeface = Console.normal
-
-    fun set(model: ScreenChar)
-    {
-        typeface = model.typeface
-        color = model.color
-        bgcolor = model.bgcolor
+    var txt = str
+    
+    var decoration = ""
+    
+    var backgroundColor = Color.BLACK
+    var foregroundColor = Color.WHITE
+    
+    fun set (model: ScreenChar) {
+    
         decoration = model.decoration
+        typeface = model.typeface
+        
+        backgroundColor = model.backgroundColor
+        foregroundColor = model.foregroundColor
+    
     }
-    fun reset() {
-        color = Color.WHITE
-        bgcolor = Color.BLACK
-        typeface = Console.normal
+    
+    fun reset () {
+    
         decoration = ""
+        typeface = Console.normal
+        
+        backgroundColor = Color.BLACK
+        foregroundColor = Color.WHITE
+    
     }
+
 }

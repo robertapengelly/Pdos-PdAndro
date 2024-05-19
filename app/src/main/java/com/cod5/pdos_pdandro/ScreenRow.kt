@@ -1,23 +1,27 @@
 package com.cod5.pdos_pdandro
 
-  /* a row in our ANSI console */
 class ScreenRow (nbcol: Int) {
-    private var col = arrayListOf<ScreenChar>()
+
+    private var col = arrayListOf<ScreenChar> ()
+    
     init {
-        var i = 0
-        while (i < nbcol) {
-            col.add(ScreenChar(" "))
-            i++
+    
+        for (i in 0 until nbcol) {
+            col.add (ScreenChar (" "))
         }
+    
     }
-    fun set(model: ScreenChar) {
-        var i = 0
-        while (i < col.size) {
-            col[i].set(model)
-            i++
+    
+    fun set (model: ScreenChar) {
+    
+        for (i in 0 until col.size) {
+            col[i].set (model)
         }
+    
     }
-    operator fun get(j: Int): ScreenChar {
+    
+    operator fun get (j: Int): ScreenChar {
         return col[j]
     }
+
 }
