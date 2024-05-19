@@ -2,6 +2,7 @@ package com.cod5.pdos_pdandro
 
 import  android.Manifest
 import  android.app.Activity
+import  android.content.Context
 import  android.content.Intent
 import  android.content.pm.PackageManager
 import  android.graphics.Bitmap
@@ -15,9 +16,12 @@ import  android.os.Bundle
 import  android.os.Environment
 import  android.os.Handler
 import  android.provider.Settings
-import  android.view.KeyEvent
 import  android.system.Os
 import  android.util.DisplayMetrics
+import  android.view.KeyEvent
+import  android.view.View
+import  android.view.WindowManager
+import  android.view.inputmethod.InputMethodManager
 import  android.widget.Toast
 
 import  com.cod5.pdos_pdandro.databinding.ActivityMainBinding
@@ -30,13 +34,15 @@ import  java.util.TimerTask
 import  kotlin.math.ceil
 import  kotlin.system.exitProcess
 
-class MainActivity : Activity () {
+class MainActivity : Activity (), View.OnClickListener {
 
     companion object {
         private const val STORAGE_PERMISSION_CODE = 101
     }
     
     private lateinit var binding: ActivityMainBinding
+    private lateinit var imm: InputMethodManager
+    
     private var input_buf = ""
     
     private var isRunning = false
@@ -339,11 +345,32 @@ class MainActivity : Activity () {
     
     }
     
+    override fun onClick(p0: View?) {
+    
+        if (getCurrentFocus () == null && !imm.isAcceptingText) {
+            imm.toggleSoftInputFromWindow (p0?.windowToken, WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN, 0)
+        }
+    
+    }
+    
     override fun onCreate (savedInstanceState: Bundle?) {
         super.onCreate (savedInstanceState)
         
         binding = ActivityMainBinding.inflate (layoutInflater)
         setContentView (binding.root)
+        
+        imm = getSystemService (Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        binding.imageview.setOnClickListener (this)
+
+        binding.imageview.setOnKeyListener { view, i, keyEvent ->
+        
+            if (keyEvent.action == KeyEvent.ACTION_DOWN) {
+                onKeyDown (keyEvent.keyCode, keyEvent)
+            }
+            
+            return@setOnKeyListener true
+        
+        }
         
         init_display ()
     
