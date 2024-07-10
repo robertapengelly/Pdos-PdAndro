@@ -136,7 +136,7 @@ class Console {
     
         var f = 0
         
-        if (escape_args.size > 1) {
+        if (escape_args.size > 0) {
             f = escape_args[0]
         }
         
